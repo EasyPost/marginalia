@@ -13,6 +13,7 @@ Gem::Specification.new do |gem|
 
   gem.add_runtime_dependency "actionpack", ">= 5.2"
   gem.add_runtime_dependency "activerecord", ">= 5.2"
+  gem.add_development_dependency "activerecord-trilogy-adapter"
   gem.add_development_dependency "rake"
   gem.add_development_dependency "mysql2"
   gem.add_development_dependency "pg"

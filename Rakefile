@@ -5,11 +5,18 @@ task :default => ['test:all']
 
 namespace :test do
   desc "test all drivers"
-  task :all => [:mysql2, :postgresql, :sqlite]
+  task :all => [:mysql2, :trilogy, :postgresql, :sqlite]
 
   desc "test mysql2 driver"
   task :mysql2 do
-    sh "DRIVER=mysql2 bundle exec ruby -Ilib -Itest test/*_test.rb"
+    username = ENV.fetch('DB_USERNAME_MYSQL2', 'root')
+    sh "DRIVER=mysql2 DB_USERNAME=#{username} bundle exec ruby -Ilib -Itest test/*_test.rb"
+  end
+
+  desc "test trilogy driver"
+  task :trilogy do
+    username = ENV.fetch("DB_USERNAME_TRILOGY", "root")
+    sh "DRIVER=trilogy DB_USERNAME=#{username} bundle exec ruby -Ilib -Itest test/*_test.rb"
   end
 
   desc "test PostgreSQL driver"
@@ -34,12 +41,12 @@ namespace :db do
 
     desc "create MySQL database"
     task :create do
-      sh 'mysql -u root -e "create database marginalia_test;"'
+      sh "mysql -u #{ENV.fetch('DB_USERNAME', 'root')} -e \"create database marginalia_test;\""
     end
 
     desc "drop MySQL database"
     task :drop do
-      sh 'mysql -u root -e "drop database if exists marginalia_test;"'
+      sh "mysql -u #{ENV.fetch('DB_USERNAME', 'root')} -e \"drop database if exists marginalia_test;\""
     end
   end
 
