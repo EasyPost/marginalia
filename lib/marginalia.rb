@@ -27,6 +27,27 @@ module Marginalia
             end
           end
 
+          is_trilogy = defined?(ActiveRecord::ConnectionAdapters::TrilogyAdapter) &&
+            ActiveRecord::ConnectionAdapters::TrilogyAdapter == instrumented_class
+          if is_trilogy
+            # Instrument exec_delete since it doesn't call execute internally.
+            if instrumented_class.method_defined?(:exec_delete)
+              alias_method :exec_delete_without_marginalia, :exec_delete
+              alias_method :exec_delete, :exec_delete_with_marginalia
+            end
+
+            # Instrument exec_update since it doesn't call execute internally.
+            #
+            # exec_update is aliased to exec_delete, so we'll alias this explicitly here to ensure
+            # we are invoking the correct version.
+            #
+            # @see https://github.com/trilogy-libraries/activerecord-trilogy-adapter/blob/93f5a0c3f697f3845ec1cd41738a3cd08b96c9f6/lib/active_record/connection_adapters/trilogy/database_statements.rb#L77
+            if instrumented_class.method_defined?(:exec_update)
+              alias_method :exec_update_without_marginalia, :exec_update
+              alias_method :exec_update, :exec_update_with_marginalia
+            end
+          end
+
           is_postgres = defined?(ActiveRecord::ConnectionAdapters::PostgreSQLAdapter) &&
             ActiveRecord::ConnectionAdapters::PostgreSQLAdapter == instrumented_class
           # Instrument exec_delete and exec_update since they don't call

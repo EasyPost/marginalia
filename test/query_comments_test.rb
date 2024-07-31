@@ -16,6 +16,7 @@ require 'pp'
 require 'active_record'
 require 'action_controller'
 require 'active_job'
+require 'activerecord-trilogy-adapter'
 require 'sidekiq'
 require 'sidekiq/testing'
 
@@ -40,11 +41,12 @@ end
 require 'marginalia'
 RAILS_ROOT = File.expand_path(File.dirname(__FILE__))
 
+DB_NAME = ENV['DRIVER'] == 'sqlite3' ? ':memory:' : 'marginalia_test'
 ActiveRecord::Base.establish_connection({
   :adapter  => ENV["DRIVER"] || "mysql",
   :host     => ENV["DB_HOST"] || "localhost",
   :username => ENV["DB_USERNAME"] || "root",
-  :database => "marginalia_test"
+  :database => DB_NAME
 })
 
 class Post < ActiveRecord::Base
@@ -133,6 +135,27 @@ class MarginaliaTest < Minitest::Test
     def test_query_commenting_on_mysql_driver_with_binary_chars
       ActiveRecord::Base.connection.execute "select id from posts /* \x81\x80\u0010\ */"
       assert_equal "select id from posts /* \x81\x80\u0010 */ /*application:rails*/", @queries.first
+    end
+  end
+
+  if ENV['DRIVER'] =~ /^trilogy/
+    def test_query_commenting_on_trilogy_driver_with_binary_chars
+      ActiveRecord::Base.connection.execute "select id from posts /* \x81\x80\u0010\ */"
+      assert_equal "select id from posts /* \x81\x80\u0010 */ /*application:rails*/", @queries.first
+    end
+
+    def test_query_commenting_on_trilogy_update
+      ActiveRecord::Base.connection.expects(:annotate_sql).returns('update posts set id = 1').once
+      ActiveRecord::Base.connection.send(:exec_update, 'update posts set id = 1')
+    ensure
+      ActiveRecord::Base.connection.unstub(:annotate_sql)
+    end
+
+    def test_query_commenting_on_trilogy_delete
+      ActiveRecord::Base.connection.expects(:annotate_sql).returns('delete from posts where id = 1').once
+      ActiveRecord::Base.connection.send(:exec_delete, 'delete from posts where id = 1')
+    ensure
+      ActiveRecord::Base.connection.unstub(:annotate_sql)
     end
   end
 
@@ -234,7 +257,7 @@ class MarginaliaTest < Minitest::Test
   def test_database
     Marginalia::Comment.components = [:database]
     API::V1::PostsController.action(:driver_only).call(@env)
-    assert_match %r{/\*database:marginalia_test}, @queries.first
+    assert_match %r{/\*database:#{DB_NAME}}, @queries.first
   end
 
   if pool_db_config?
