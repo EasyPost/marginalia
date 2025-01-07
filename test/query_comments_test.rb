@@ -151,6 +151,13 @@ class MarginaliaTest < Minitest::Test
       ActiveRecord::Base.connection.unstub(:annotate_sql)
     end
 
+    def test_query_commenting_on_trilogy_insert
+      ActiveRecord::Base.connection.expects(:annotate_sql).returns('insert into posts (id) values (55)').once
+      ActiveRecord::Base.connection.send(:exec_insert, 'insert into posts (id) values (55)')
+    ensure
+      ActiveRecord::Base.connection.unstub(:annotate_sql)
+    end
+
     def test_query_commenting_on_trilogy_delete
       ActiveRecord::Base.connection.expects(:annotate_sql).returns('delete from posts where id = 1').once
       ActiveRecord::Base.connection.send(:exec_delete, 'delete from posts where id = 1')
