@@ -36,6 +36,12 @@ module Marginalia
               alias_method :exec_delete, :exec_delete_with_marginalia
             end
 
+             # Instrument exec_delete since it doesn't call execute internally.
+             if instrumented_class.method_defined?(:exec_insert)
+              alias_method :exec_insert_without_marginalia, :exec_insert
+              alias_method :exec_insert, :exec_insert_with_marginalia
+            end
+
             # Instrument exec_update since it doesn't call execute internally.
             #
             # exec_update is aliased to exec_delete, so we'll alias this explicitly here to ensure
@@ -102,6 +108,11 @@ module Marginalia
       exec_delete_without_marginalia(annotate_sql(sql), *args)
     end
     ruby2_keywords :exec_delete_with_marginalia if respond_to?(:ruby2_keywords, true)
+
+    def exec_insert_with_marginalia(sql, *args)
+      exec_insert_without_marginalia(annotate_sql(sql), *args)
+    end
+    ruby2_keywords :exec_insert_with_marginalia if respond_to?(:ruby2_keywords, true)
 
     def exec_update_with_marginalia(sql, *args)
       exec_update_without_marginalia(annotate_sql(sql), *args)
